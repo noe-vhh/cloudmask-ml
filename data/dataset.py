@@ -24,15 +24,20 @@ class CloudSEN12Dataset(Dataset):
     def __getitem__(self, index: int):
         sample = self.samples[index]
 
-        # Load - rasterio saves as (C, H, W) already, no permute needed
-        image = np.load(sample["image"]).astype(np.float32)  # (13, 512, 512)
-        mask = np.load(sample["mask"]).astype(np.int64)       # (512, 512)
+        # Load - rasterio saves as (C, H, W)
+        # (13, 512, 512)
+        image = np.load(sample["image"]).astype(np.float32)
+        # (512, 512)
+        mask = np.load(sample["mask"])
 
         # Select bands - default is all 13, can pass subset e.g. [0,1,2,3]
         image = image[self.bands]
 
         # Normalise: Sentinel-2 raw values -> 0.0 to 1.0
         image = image / 10000.0
+
+        # collapse to binary: 0=clear, 1=cloud
+        mask = (mask > 0).astype(np.int64)
 
         # Convert to tensors - already (C, H, W), no permute needed
         image = torch.from_numpy(image)

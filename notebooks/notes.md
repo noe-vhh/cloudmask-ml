@@ -328,3 +328,20 @@ We bypass it entirely using raw HTTP range requests and rasterio.
             ...
         test/
             ...
+
+## 14. Mask Label Strategy
+
+Raw CloudSEN12 masks have 4 classes:
+- 0 = clear
+- 1 = thick cloud
+- 2 = thin cloud
+- 3 = shadow
+
+For the prototype we collapse to binary in `dataset.py`:
+```python
+mask = (mask > 0).astype(np.int64)  # 0=clear, 1=cloud
+```
+
+Reason: s2cloudless (our benchmark) outputs binary. Apples-to-apples
+comparison makes the CTO pitch cleaner. Multi-class is a natural next step
+once the prototype validates the approach.
