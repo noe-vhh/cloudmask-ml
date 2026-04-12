@@ -65,7 +65,8 @@ pip install -r requirements.txt
 ## Status
 
 - [x] GPU compute stack (ROCm 6.4 + PyTorch 2.5, AMD RX 6800 XT verified)
-- [ ] Dataset pipeline (Sentinel-2 download + preprocessing)
+- [x] Dataset extraction pipeline (342 HQ samples, HTTP range requests + rasterio)
+- [ ] Full extraction run (342 samples across train/validation/test)
 - [ ] Model training
 - [ ] Benchmark validation against s2cloudless
 - [ ] ONNX export and runtime validation

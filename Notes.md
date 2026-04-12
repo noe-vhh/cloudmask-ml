@@ -1,10 +1,5 @@
 # CloudMask ML - Project Knowledge Base
 
-A plain-English reference covering the concepts, decisions, and reasoning behind this project.
-Written to be studied, shared, or turned into a podcast.
-
----
-
 ## 1. What is this project?
 
 CloudMask ML is a machine learning prototype that identifies cloud pixels in satellite imagery - specifically Sentinel-2 images. Every pixel in a satellite image gets labelled: cloud, or not cloud.
@@ -100,7 +95,7 @@ Key facts:
 - 10,000+ image patches
 - Three quality tiers: HQ (high quality), MQ, LQ
 - Labels generated using s2cloudless - which is also our benchmark target
-- Each patch is 256×256 pixels
+- Each patch is 512×512 pixels
 - Each patch has a matching binary cloud mask
 
 We download only the **HQ subset** for training and benchmarking. This is controlled via `ignore_patterns` in the download script, which filters out MQ and LQ files.
@@ -122,10 +117,10 @@ CloudSEN12 HQ is ~20-30GB. Loading everything into RAM at startup would crash. I
 1. Look up the file paths for image and mask at this index
 2. Load both `.npy` files from disk with `np.load()`
 3. Cast image to `float32`, mask to `int64`
-4. Select only the bands we want: `image[:, :, self.bands]`
+4. Select only the bands we want: `image[self.bands]`
 5. Normalise image: divide by 10000.0 (Sentinel-2 max reflectance)
 6. Convert both to PyTorch tensors with `torch.from_numpy()`
-7. Fix axis order: `image.permute(2, 0, 1)` → from (H, W, C) to (C, H, W)
+7. No permute needed — rasterio saves as (C, H, W) already
 8. Return the tensor pair: `(image_tensor, mask_tensor)`
 
 ### Why (C, H, W)?
@@ -272,5 +267,64 @@ Targeted extraction from the binary file using byte offsets is the right approac
 
 **Libraries needed:**
 - `pyarrow` - read `.parquet` metadata files
-- `tacoreader` - read `.mlstac` binary format (use `tacoreader.v1` import)
 - `requests`, `aiohttp` - HTTP dependencies for tacoreader streaming
+
+## 13. .mlstac Format — Discovered by Inspection
+
+Never assume a dataset format. Always inspect before writing pipeline code.
+
+### File structure
+
+Each .mlstac file contains three sections in order:
+- A 10-byte binary header
+- A JSON index mapping datapoint_id to [relative_offset, length]
+- Sequential JPEG2000 encoded samples
+
+### Finding the boundary
+
+The JSON index ends where binary data begins. JPEG2000 files always start with
+magic bytes 0x0000000c. We search for these in the first ~700KB of the file to
+find the exact boundary position. This boundary is different per file so it must
+be detected dynamically, not hardcoded.
+
+### Offset resolution
+
+Offsets in the JSON index are relative to the boundary, not absolute from the
+start of the file. To get the absolute byte position:
+
+    absolute_offset = boundary + relative_offset
+
+### Sample format
+
+Each sample is a JPEG2000 file containing 15 bands at 512x512 pixels, uint16.
+
+- Bands 0-12: Sentinel-2 L1C spectral bands
+- Band 13: Human cloud label (primary) — values 0=clear, 1=thick cloud, 2=thin cloud, 3=shadow
+- Band 14: Secondary label
+
+### Extraction strategy
+
+1. Fetch first ~700KB of .mlstac file
+2. Search for JPEG2000 magic bytes to find boundary position
+3. Fetch bytes 0 to boundary and parse as JSON index
+4. For each HQ fixed sample, look up datapoint_id to get relative offset and length
+5. HTTP range request for absolute byte range
+6. Write to temp .jp2 file, open with rasterio, read as numpy array
+7. Split bands: image = data[:13], mask = data[13]
+8. Save as {datapoint_id}_image.npy and {datapoint_id}_mask.npy
+
+### Why not tacoreader
+
+tacoreader streams the entire file footer remotely and times out on 22GB files.
+We bypass it entirely using raw HTTP range requests and rasterio.
+
+### Output structure
+
+    data/extracted/
+        train/
+            ROI_xxxx__..._image.npy
+            ROI_xxxx__..._mask.npy
+        validation/
+            ...
+        test/
+            ...
