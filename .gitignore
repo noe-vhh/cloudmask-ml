@@ -8,4 +8,5 @@ dist/
 build/
 data/raw/
 data/extracted/
+notebooks/
 Context.md

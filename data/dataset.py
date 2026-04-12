@@ -33,7 +33,8 @@ class CloudSEN12Dataset(Dataset):
         # Select bands - default is all 13, can pass subset e.g. [0,1,2,3]
         image = image[self.bands]
 
-        # Normalise: Sentinel-2 raw values -> 0.0 to 1.0
+        # Normalise: divide by sensor max reflectance (Sentinel-2 = 10000.0)
+        # TODO: move to config.yaml as per-sensor parameter for full agnosticism
         image = image / 10000.0
 
         # collapse to binary: 0=clear, 1=cloud

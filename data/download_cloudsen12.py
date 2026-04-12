@@ -10,7 +10,7 @@ from pathlib import Path
 # Parquet metadata path
 DATA_DIR = Path("data/raw/cloudsen12")
 # Extracted .npy files path
-OUT_DIR = Path("data/extracted")
+OUT_DIR = Path("data/cloudsen12/extracted")
 # How far into the file to search for the JSON boundary
 INDEX_FETCH_SIZE = 700_000
 # JPEG2000 magic bytes - marks start of binary data, end of JSON index
