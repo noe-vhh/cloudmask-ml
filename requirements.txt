@@ -55,3 +55,7 @@ tqdm==4.67.3
 typer==0.24.1
 typing-inspection==0.4.2
 typing_extensions==4.15.0
+pyarrow==23.0.1
+tacoreader==0.6.5
+requests==2.33.1
+aiohttp==3.13.5
