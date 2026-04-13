@@ -4,8 +4,10 @@ from pathlib import Path
 from torch.utils.data import Dataset
 
 class CloudSEN12Dataset(Dataset):
-    def __init__(self, data_dir: str, bands: list[int] = list(range(13))):
+    def __init__(self, data_dir: str, bands: list[int] = list(range(13)), transform=None, sensor_max_reflectance: float = 10000.0):
         self.bands = bands
+        self.transform = transform
+        self.sensor_max_reflectance = sensor_max_reflectance
 
         # Find all image files, derive mask paths from naming convention
         image_paths = sorted(Path(data_dir).glob("*_image.npy"))
@@ -34,11 +36,22 @@ class CloudSEN12Dataset(Dataset):
         image = image[self.bands]
 
         # Normalise: divide by sensor max reflectance (Sentinel-2 = 10000.0)
-        # TODO: move to config.yaml as per-sensor parameter for full agnosticism
-        image = image / 10000.0
+        image = image / self.sensor_max_reflectance
 
         # collapse to binary: 0=clear, 1=cloud
         mask = (mask > 0).astype(np.int64)
+
+        #Albumentation
+        if self.transform:
+            #Transpose to the expected Albumentation format
+            image = image.transpose(1, 2, 0)  # (C,H,W) -> (H,W,C)
+
+            transformed = self.transform(image=image, mask=mask)
+            image = transformed["image"]
+            mask = transformed["mask"]
+            
+            #Transpose to original format
+            image = image.transpose(2, 0, 1)  # (H,W,C) -> (C,H,W)
 
         # Convert to tensors - already (C, H, W), no permute needed
         image = torch.from_numpy(image)
