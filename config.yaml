@@ -1,15 +1,25 @@
 model:
-  encoder: resnet34        # Pretrained CNN backbone that acts as the U-Net encoder - resnet34 is lightweight and well-tested; swap for resnet50/efficientnet for more capacity
-  in_channels: 13          # Number of spectral bands fed into the model - 13 for full Sentinel-2 L1C; change this when targeting other sensors
-  num_classes: 1           # Output channels - 1 for binary segmentation with BCEWithLogitsLoss; use 2+ for multi-class with CrossEntropyLoss
+  # Pretrained CNN backbone that acts as the U-Net encoder - resnet34 is lightweight and well-tested; swap for resnet50/efficientnet for more capacity
+  encoder: resnet34
+  # Number of spectral bands fed into the model - 13 for full Sentinel-2 L1C; change this when targeting other sensors
+  in_channels: 13
+  # Output channels - 1 for binary segmentation with BCEWithLogitsLoss; use 2+ for multi-class with CrossEntropyLoss
+  num_classes: 1
 
 training:
-  learning_rate: 0.001     # Step size for weight updates during backpropagation - too high = unstable training, too low = slow convergence; 0.001 is a safe starting point
-  epochs: 20               # Number of complete passes through the training set - increase if validation loss is still improving at epoch 20
-  batch_size: 8            # Number of samples per gradient update - larger = more stable gradients but more VRAM; 8 is conservative for 512x512 patches on 16GB
+  # Step size for weight updates during backpropagation - too high = unstable training, too low = slow convergence; 0.001 is a safe starting point
+  learning_rate: 0.001
+  # Number of complete passes through the training set - increase if validation loss is still improving at epoch 20
+  epochs: 20
+  # Number of samples per gradient update - larger = more stable gradients but more VRAM; 8 is conservative for 512x512 patches on 16GB
+  batch_size: 8
 
 data:
-  train_dir: data/extracted/cloudsen12/train           # Path to training split - model learns from this data
-  val_dir: data/extracted/cloudsen12/validation        # Path to validation split - monitors overfitting during training, never trained on
-  test_dir: data/extracted/cloudsen12/test             # Path to test split - final honest benchmark; only evaluate here once, at the end
-  sensor_max_reflectance: 10000.0                      # Raw Sentinel-2 uint16 values divided by this to normalise to 0.0-1.0 range - change per sensor
+  # Path to training split - model learns from this data
+  train_dir: data/extracted/cloudsen12/train
+  # Path to validation split - monitors overfitting during training, never trained on
+  val_dir: data/extracted/cloudsen12/validation
+  # Path to test split - final honest benchmark; only evaluate here once, at the end
+  test_dir: data/extracted/cloudsen12/test
+  # Raw Sentinel-2 uint16 values divided by this to normalise to 0.0-1.0 range - change per sensor
+  sensor_max_reflectance: 10000.0

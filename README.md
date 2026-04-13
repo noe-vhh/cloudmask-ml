@@ -37,13 +37,23 @@ benchmark on public Sentinel-2 data.
 
 ```
 cloudmask-ml/
-├── data/               # Dataset scripts and download utilities
-├── models/             # Model definitions and checkpoints
-├── notebooks/          # Exploration and evaluation notebooks
-├── src/                # Training, inference, and export scripts
-├── tests/              # Unit and integration tests
-├── SETUP.md            # Full environment setup and reproducibility guide
-└── requirements.txt    # Python dependencies
+├── data/
+│   └── download_cloudsen12.py   # CloudSEN12-specific extraction via HTTP range requests
+├── src/
+│   ├── __init__.py              # Makes src/ importable as a package
+│   ├── dataset.py               # Generic PyTorch Dataset - agnostic to data source
+│   ├── train.py                 # Training loop with augmentation and checkpointing
+│   ├── evaluate.py              # Metrics against validation/test set
+│   ├── export.py                # Export trained model to ONNX
+│   └── predict.py               # Inference on a single image (demos)
+├── models/                      # Saved model checkpoints
+├── notebooks/                   # Exploration and evaluation notebooks
+├── tests/                       # Unit and integration tests
+├── config.yaml                  # All hyperparameters and paths - single source of truth
+├── SETUP.md                     # Full environment setup guide (ROCm, PyTorch)
+├── NOTES.md                     # Project knowledge base
+├── README.md                    # Project overview
+└── requirements.txt             # Python dependencies
 ```
 
 ---
@@ -67,10 +77,13 @@ pip install -r requirements.txt
 - [x] GPU compute stack (ROCm 6.4 + PyTorch 2.5, AMD RX 6800 XT verified)
 - [x] Dataset extraction pipeline (342 HQ samples, HTTP range requests + rasterio)
 - [x] Full extraction run (342 samples across train/validation/test)
-- [x] dataset.py updated (binary mask collapse, dtype cleanup)
-- [ ] Model training
+- [x] config.yaml (model, training, and data configuration)
+- [x] src/dataset.py (binary mask collapse, augmentation support, dtype cleanup)
+- [x] src/train.py (training loop, augmentation, checkpointing)
+- [ ] src/evaluate.py (IoU/F1 metrics against val/test set)
+- [ ] src/export.py (ONNX export and runtime validation)
+- [ ] src/predict.py (single image inference for demos)
 - [ ] Benchmark validation against s2cloudless
-- [ ] ONNX export and runtime validation
 
 ---
 
