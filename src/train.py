@@ -35,7 +35,7 @@ Flow:
     6. Training loop - for each epoch: forward -> loss -> backward -> update weights
     7. Validation loop - evaluate on unseen data after each epoch, no weight updates
     8. Log train/val loss per epoch to monitor for overfitting
-    9. Save model weights checkpoint to models/cloudmask.pth
+    9. Save best checkpoint (cloudmask_best.pth) when val loss improves, and final checkpoint (cloudmask_last.pth) at end
 """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
@@ -112,6 +112,8 @@ Flow:
     criterion = torch.nn.BCEWithLogitsLoss()
     optimiser = torch.optim.Adam(model.parameters(), lr=train_cfg["learning_rate"])
 
+    best_val_loss = float("inf")
+
     # Training Loop
     for epoch in range(train_cfg["epochs"]):
 
@@ -168,11 +170,16 @@ Flow:
             "val_loss": avg_val
         })
 
-    # Save checkpoint
-    # State dict is just the model weights - lighter than saving the whole model object
-    torch.save(model.state_dict(), "models/cloudmask.pth")
+        # Save best checkpoint
+        if avg_val < best_val_loss:
+            best_val_loss = avg_val
+            torch.save(model.state_dict(), "models/cloudmask_best.pth")
+            print(f"  Best model saved (val loss: {avg_val:.4f})")
+
+    # Save final checkpoint regardless
+    torch.save(model.state_dict(), "models/cloudmask_last.pth")
     wandb.finish()
-    print("Model saved to models/cloudmask.pth")
+    print("Training complete. Final model saved to models/cloudmask_last.pth")
 
 if __name__ == "__main__":
     train()
