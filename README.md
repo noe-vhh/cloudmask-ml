@@ -1,7 +1,7 @@
 # CloudMask ML
 
 > Semantic segmentation prototype for cloud pixel detection in Sentinel-2 satellite imagery -
-> with a path to per-sensor deployment via ONNX export into existing C-based EO pipelines.
+> with a path to per-sensor deployment via ONNX export into existing Java-based EO pipelines.
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.5%20%2B%20ROCm%206.2-orange)
@@ -16,7 +16,7 @@ Cloud masking is a critical preprocessing step in every Earth Observation (EO) p
 Cloudy pixels corrupt downstream analysis - crop health, flood extent, urban change - and
 must be identified and removed before any science can happen.
 
-This prototype asks: **can a small trained ML model replace a hand-tuned C algorithm,
+This prototype asks: **can a small trained ML model replace a hand-tuned algorithmic approach,
 generalise across sensors, and still be lightweight enough for constrained deployment?**
 
 The answer is validated against [s2cloudless](https://github.com/sentinel-hub/sentinel2-cloudless),
@@ -43,7 +43,7 @@ Output mask       ←  per-pixel cloud probability → binary label (0=clear, 1=
 
 **Sensor agnosticism:** each sensor gets its own projector (trained cheaply on ~100-200
 labelled samples). The U-Net core is shared and improves with every sensor added.
-Deployment is a single fused `.onnx` file per sensor - the C pipeline never changes.
+Deployment is a single fused `.onnx` file per sensor - the Java pipeline never changes.
 
 ```
 Sentinel-2 (13 bands) ─┐
@@ -60,8 +60,8 @@ ClientSat  ( 4 bands) ─┘
 | Framework | PyTorch 2.5 + ROCm 6.2 | Industry standard, AMD GPU support via ROCm |
 | Segmentation | segmentation-models-pytorch | Pre-built U-Net variants, clean API |
 | Augmentation | Albumentations | Synced image+mask transforms, fast |
-| Export | ONNX 1.21 | Portable format - bridges Python training to C runtime |
-| Runtime | onnxruntime | Runs ONNX in C, C++, Python with near-native speed |
+| Export | ONNX 1.21 | Portable format - bridges Python training to Java pipeline |
+| Runtime | onnxruntime | Runs ONNX in Java, C++, Python with near-native speed |
 | GPU | AMD RX 6800 XT (16GB) | Available hardware, ROCm verified |
 | Dataset | CloudSEN12Plus (HQ) | 342 human-expert labelled Sentinel-2 patches |
 
@@ -159,7 +159,7 @@ the 342 samples we need (~2GB total).
 
 **Prototype (current)**
 Train and benchmark on Sentinel-2 CloudSEN12 HQ data. Validate against s2cloudless.
-Export to ONNX. Demonstrate C integration.
+Export to ONNX. Demonstrate Java pipeline integration.
 
 **Cross-sensor validation**
 Evaluate zero-shot on Landsat-8 (USGS Biome dataset). Fine-tune band projector.
@@ -177,5 +177,5 @@ Quantised ONNX models for constrained satellite hardware. Federated learning vis
 ## Goal
 
 Demonstrate that a lightweight ML approach can match or exceed the accuracy of a
-hand-tuned C algorithm for cloud masking, while providing a clear path to deployment
-across multiple sensors via ONNX export - without touching the existing C pipeline.
+hand-tuned algorithmic approach for cloud masking, while providing a clear path to deployment
+across multiple sensors via ONNX export - without touching the existing Java pipeline.
