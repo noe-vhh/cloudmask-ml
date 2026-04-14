@@ -147,7 +147,7 @@ the 342 samples we need (~2GB total).
 - [x] config.yaml (model, training, data configuration)
 - [x] src/dataset.py (lazy loading, augmentation, binary mask collapse)
 - [x] src/train.py (training loop, transfer learning, checkpointing)
-- [ ] src/evaluate.py (IoU/F1 metrics)
+- [x] src/evaluate.py (IoU/F1 metrics)
 - [ ] src/export.py (ONNX export and validation)
 - [ ] src/predict.py (single image inference)
 - [ ] Benchmark results against s2cloudless
