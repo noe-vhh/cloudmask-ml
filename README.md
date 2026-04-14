@@ -64,6 +64,7 @@ ClientSat  ( 4 bands) ─┘
 | Runtime | onnxruntime | Runs ONNX in Java, C++, Python with near-native speed |
 | GPU | AMD RX 6800 XT (16GB) | Available hardware, ROCm verified |
 | Dataset | CloudSEN12Plus (HQ) | 342 human-expert labelled Sentinel-2 patches |
+| Experiment Tracking | Weights & Biases (wandb) | Live loss curves, GPU metrics, hyperparameter logging |
 
 ---
 
@@ -146,7 +147,7 @@ the 342 samples we need (~2GB total).
 - [x] Full extraction run (342 samples across train/validation/test)
 - [x] config.yaml (model, training, data configuration)
 - [x] src/dataset.py (lazy loading, augmentation, binary mask collapse)
-- [x] src/train.py (training loop, transfer learning, checkpointing)
+- [x] src/train.py - training loop, augmentation, transfer learning, checkpointing, W&B logging
 - [x] src/evaluate.py (IoU/F1 metrics)
 - [ ] src/export.py (ONNX export and validation)
 - [ ] src/predict.py (single image inference)

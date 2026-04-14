@@ -9,4 +9,6 @@ build/
 data/raw/
 data/extracted/
 notebooks/
+results/
+models/
 Context.md

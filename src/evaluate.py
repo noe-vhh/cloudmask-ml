@@ -1,11 +1,33 @@
 import torch
 import yaml
+from datetime import datetime
+import sys
+import os
 from torch.utils.data import DataLoader
 import segmentation_models_pytorch as smp
 from src.dataset import CloudSEN12Dataset
 from tqdm import tqdm
+import wandb
+
+class Tee:
+    def __init__(self, filepath):
+        self.terminal = sys.stdout
+        self.log = open(filepath, "w")
+
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+
+    def flush(self):
+        self.terminal.flush()
+        self.log.flush()
 
 def evaluate():
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    os.makedirs("results", exist_ok=True)
+    sys.stdout = Tee(f"results/eval_run_{timestamp}.txt")
+
     # Load config and device
     config = yaml.safe_load(open("config.yaml"))
     model_cfg = config["model"]
@@ -84,6 +106,20 @@ def evaluate():
     print(f"Recall:    {recall:.4f}")
     print(f"Accuracy:  {accuracy:.4f}")
     print(f"\nRaw counts - TP: {tp_total}, FP: {fp_total}, FN: {fn_total}, TN: {tn_total}")
+
+    wandb.init(project="cloudmask-ml", name="evaluate-test-set", job_type="eval")
+    wandb.log({
+        "test/iou": iou,
+        "test/f1": f1,
+        "test/precision": precision,
+        "test/recall": recall,
+        "test/accuracy": accuracy,
+        "test/tp": tp_total,
+        "test/fp": fp_total,
+        "test/fn": fn_total,
+        "test/tn": tn_total
+    })
+    wandb.finish()
 
 if __name__ == "__main__":
     evaluate()

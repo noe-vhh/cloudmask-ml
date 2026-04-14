@@ -60,3 +60,4 @@ tacoreader==0.6.5
 requests==2.33.1
 aiohttp==3.13.5
 rasterio==1.5.0
+wandb

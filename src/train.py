@@ -1,9 +1,26 @@
+import os
+import sys
+from datetime import datetime
 import torch
 import yaml
 import segmentation_models_pytorch as smp
 import albumentations as A
 from torch.utils.data import DataLoader
+import wandb
 from src.dataset import CloudSEN12Dataset
+
+class Tee:
+    def __init__(self, filepath):
+        self.terminal = sys.stdout
+        self.log = open(filepath, "w")
+
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+
+    def flush(self):
+        self.terminal.flush()
+        self.log.flush()
 
 def train():
 """
@@ -20,6 +37,11 @@ Flow:
     8. Log train/val loss per epoch to monitor for overfitting
     9. Save model weights checkpoint to models/cloudmask.pth
 """
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    os.makedirs("results", exist_ok=True)
+    sys.stdout = Tee(f"results/train_{timestamp}.txt")
+    
     # Config
     config = yaml.safe_load(open("config.yaml"))
     model_cfg = config["model"]
@@ -31,6 +53,15 @@ Flow:
     # ROCm implements AMD's HIP runtime as a drop-in replacement for CUDA, so ROCm/CUDU all surfaces through the same CUDA interface
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
+
+    wandb.init(
+        # groups all runs under one project on the dashboard
+        project="cloudmask-ml",
+        # human-readable run name
+        name=f"unet-resnet34-e{train_cfg['epochs']}-b{train_cfg['batch_size']}",
+        # logs entire config.yaml as hyperparameters
+        config=config                 
+    )
 
     # Augmentation
     # Training only - val/test get no augmentation for honest evaluation
@@ -123,14 +154,24 @@ Flow:
                 loss = criterion(outputs, masks)
                 val_loss += loss.item()
 
-        # Logging - average loss per batch for comparability across different dataset sizes
+        avg_train = train_loss / len(train_loader)
+        avg_val = val_loss / len(val_loader)
+
         print(f"Epoch {epoch+1}/{train_cfg['epochs']} "
-              f"| Train Loss: {train_loss/len(train_loader):.4f} "
-              f"| Val Loss: {val_loss/len(val_loader):.4f}")
+              f"| Train Loss: {avg_train:.4f} "
+              f"| Val Loss: {avg_val:.4f}")
+
+        # Logging - average loss per batch for comparability across different dataset sizes
+        wandb.log({
+            "epoch": epoch + 1,
+            "train_loss": avg_train,
+            "val_loss": avg_val
+        })
 
     # Save checkpoint
     # State dict is just the model weights - lighter than saving the whole model object
     torch.save(model.state_dict(), "models/cloudmask.pth")
+    wandb.finish()
     print("Model saved to models/cloudmask.pth")
 
 if __name__ == "__main__":
