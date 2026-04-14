@@ -142,6 +142,8 @@ the 342 samples we need (~2GB total).
 
 ## Status
 
+## Status
+
 - [x] GPU compute stack (ROCm 6.4 + PyTorch 2.5, AMD RX 6800 XT verified)
 - [x] Dataset extraction pipeline (342 HQ samples via HTTP range requests + rasterio)
 - [x] Full extraction run (342 samples across train/validation/test)
@@ -149,9 +151,11 @@ the 342 samples we need (~2GB total).
 - [x] src/dataset.py (lazy loading, augmentation, binary mask collapse)
 - [x] src/train.py - training loop, augmentation, transfer learning, checkpointing, W&B logging
 - [x] src/evaluate.py (IoU/F1 metrics)
+- [x] First training run complete (20 epochs, ResNet34, batch_size 8)
+- [x] Benchmark results against s2cloudless - F1: 0.7076, IoU: 0.5475 ✓ beats target
+- [ ] Improve training: more epochs + LR scheduler
 - [ ] src/export.py (ONNX export and validation)
 - [ ] src/predict.py (single image inference)
-- [ ] Benchmark results against s2cloudless
 - [ ] Cross-sensor evaluation (Landsat-8)
 
 ---
