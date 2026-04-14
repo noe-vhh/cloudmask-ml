@@ -11,4 +11,6 @@ data/extracted/
 notebooks/
 results/
 models/
+wandb/
+tea_debug.log
 Context.md

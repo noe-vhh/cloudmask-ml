@@ -7,7 +7,7 @@ import segmentation_models_pytorch as smp
 import albumentations as A
 from torch.utils.data import DataLoader
 import wandb
-from src.dataset import CloudSEN12Dataset
+from dataset import CloudSEN12Dataset
 
 class Tee:
     def __init__(self, filepath):
@@ -23,20 +23,20 @@ class Tee:
         self.log.flush()
 
 def train():
-"""
-Training pipeline for CloudMask semantic segmentation
+    """
+    Training pipeline for CloudMask semantic segmentation
 
-Flow:
-    1. Load config.yaml - all hyperparameters and paths
-    2. Build datasets - train (with augmentation) and val (clean, no augmentation)
-    3. Wrap in DataLoaders - handles batching, shuffling, and parallel disk loading
-    4. Build U-Net model with pretrained ResNet34 encoder (transfer learning)
-    5. Define BCEWithLogitsLoss and Adam optimiser
-    6. Training loop - for each epoch: forward -> loss -> backward -> update weights
-    7. Validation loop - evaluate on unseen data after each epoch, no weight updates
-    8. Log train/val loss per epoch to monitor for overfitting
-    9. Save best checkpoint (cloudmask_best.pth) when val loss improves, and final checkpoint (cloudmask_last.pth) at end
-"""
+    Flow:
+        1. Load config.yaml - all hyperparameters and paths
+        2. Build datasets - train (with augmentation) and val (clean, no augmentation)
+        3. Wrap in DataLoaders - handles batching, shuffling, and parallel disk loading
+        4. Build U-Net model with pretrained ResNet34 encoder (transfer learning)
+        5. Define BCEWithLogitsLoss and Adam optimiser
+        6. Training loop - for each epoch: forward -> loss -> backward -> update weights
+        7. Validation loop - evaluate on unseen data after each epoch, no weight updates
+        8. Log train/val loss per epoch to monitor for overfitting
+        9. Save best checkpoint (cloudmask_best.pth) when val loss improves, and final checkpoint (cloudmask_last.pth) at end
+    """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     os.makedirs("results", exist_ok=True)

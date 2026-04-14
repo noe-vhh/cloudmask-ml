@@ -5,7 +5,7 @@ import sys
 import os
 from torch.utils.data import DataLoader
 import segmentation_models_pytorch as smp
-from src.dataset import CloudSEN12Dataset
+from dataset import CloudSEN12Dataset
 from tqdm import tqdm
 import wandb
 
