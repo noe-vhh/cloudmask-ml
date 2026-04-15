@@ -40,7 +40,9 @@ def train():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     os.makedirs("results", exist_ok=True)
-    os.makedirs("models", exist_ok=True)
+    os.makedirs("models/core", exist_ok=True)
+    os.makedirs("models/projectors", exist_ok=True)
+    os.makedirs("models/onnx", exist_ok=True)
     sys.stdout = Tee(f"results/train_{timestamp}.txt")
     
     # Config
@@ -176,7 +178,7 @@ def train():
         if avg_val < best_val_loss:
             best_val_loss = avg_val
             best_epoch = epoch + 1
-            torch.save(model.state_dict(), "models/cloudmask_best.pth")
+            torch.save(model.state_dict(), "models/core/unet_resnet34_core_best.pth")
             print(f"  Best model saved (val loss: {avg_val:.4f})")
 
     # Save best epoch and best value loss to W&B summary
@@ -184,7 +186,7 @@ def train():
     wandb.run.summary["best_epoch"] = best_epoch
 
     # Save final checkpoint regardless
-    torch.save(model.state_dict(), "models/cloudmask_last.pth")
+    torch.save(model.state_dict(), "models/core/unet_resnet34_core_last.pth")
     wandb.finish()
     print("Training complete. Final model saved to models/cloudmask_last.pth")
 

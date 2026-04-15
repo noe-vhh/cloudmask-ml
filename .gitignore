@@ -10,7 +10,11 @@ data/raw/
 data/extracted/
 notebooks/
 results/
-models/
 wandb/
 tea_debug.log
 Context.md
+
+# Model weights - large binaries, not for git
+models/core/*.pth
+models/projectors/*.pth
+models/onnx/*.onnx

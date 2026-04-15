@@ -50,9 +50,9 @@ def evaluate():
 
     # weights_only=True - PyTorch only loads the tensor weights from the file (avoids runtime warning)
     # The default False allows arbitrary Python objects to be deserialised, which is a security risk if you ever load a checkpoint from an untrusted source
-    model.load_state_dict(torch.load("models/cloudmask_best.pth", map_location=device, weights_only=True))
+    model.load_state_dict(torch.load("models/core/unet_resnet34_core_best.pth", map_location=device, weights_only=True))
     model.eval()
-    print("Model loaded from models/cloudmask_best.pth")
+    print("Model loaded from models/core/unet_resnet34_core_best.pth")
 
     # Test dataset and loader
     test_dataset = CloudSEN12Dataset(

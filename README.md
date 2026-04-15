@@ -82,7 +82,7 @@ cloudmask-ml/
 │   ├── export.py                # ONNX export and validation
 │   └── predict.py               # Single image inference
 ├── models/
-│   ├── cloudmask_unet_core.pth  # Shared U-Net core
+│   ├── core/                    # Shared U-Net core checkpoints
 │   ├── projectors/              # Per-sensor band projectors
 │   └── onnx/                    # Fused deployment models
 ├── config.yaml                  # All hyperparameters and paths
