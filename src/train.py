@@ -113,6 +113,7 @@ def train():
     optimiser = torch.optim.Adam(model.parameters(), lr=train_cfg["learning_rate"])
 
     best_val_loss = float("inf")
+    best_epoch = 0
 
     # Training Loop
     for epoch in range(train_cfg["epochs"]):
@@ -173,8 +174,13 @@ def train():
         # Save best checkpoint
         if avg_val < best_val_loss:
             best_val_loss = avg_val
+            best_epoch = epoch + 1
             torch.save(model.state_dict(), "models/cloudmask_best.pth")
             print(f"  Best model saved (val loss: {avg_val:.4f})")
+
+    # Save best epoch and best value loss to W&B summary
+    wandb.run.summary["best_val_loss"] = best_val_loss
+    wandb.run.summary["best_epoch"] = best_epoch
 
     # Save final checkpoint regardless
     torch.save(model.state_dict(), "models/cloudmask_last.pth")

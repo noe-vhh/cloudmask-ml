@@ -153,7 +153,7 @@ the 342 samples we need (~2GB total).
 - [x] src/evaluate.py (IoU/F1 metrics)
 - [x] First training run complete (20 epochs, ResNet34, batch_size 8)
 - [x] Benchmark results against s2cloudless - F1: 0.7076, IoU: 0.5475 ✓ beats target
-- [ ] Fix W&B run summary (captures early epoch snapshot - text log is source of truth for now)
+- [x] Fix W&B run summary (best_val_loss and best_epoch now written explicitly to wandb.run.summary)
 - [ ] LR scheduler + more epochs (loss still declining at ep20)
 - [ ] src/export.py (ONNX export - priority before Band Projector)
 - [ ] src/predict.py (single image inference)
