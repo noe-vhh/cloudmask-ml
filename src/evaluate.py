@@ -37,6 +37,8 @@ def evaluate():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
+    wandb.init(project="cloudmask-ml", name="evaluate-test-set", job_type="eval")
+
     # Load model from checkpoint
     model = smp.Unet(
         encoder_name=model_cfg["encoder"],
@@ -107,7 +109,6 @@ def evaluate():
     print(f"Accuracy:  {accuracy:.4f}")
     print(f"\nRaw counts - TP: {tp_total}, FP: {fp_total}, FN: {fn_total}, TN: {tn_total}")
 
-    wandb.init(project="cloudmask-ml", name="evaluate-test-set", job_type="eval")
     wandb.log({
         "test/iou": iou,
         "test/f1": f1,

@@ -4,8 +4,8 @@ from pathlib import Path
 from torch.utils.data import Dataset
 
 class CloudSEN12Dataset(Dataset):
-    def __init__(self, data_dir: str, bands: list[int] = list(range(13)), transform=None, sensor_max_reflectance: float = 10000.0):
-        self.bands = bands
+    def __init__(self, data_dir: str, bands: list[int] = None, transform=None, sensor_max_reflectance: float = 10000.0):
+        self.bands = bands if bands is not None else list(range(13))
         self.transform = transform
         self.sensor_max_reflectance = sensor_max_reflectance
 
@@ -41,16 +41,16 @@ class CloudSEN12Dataset(Dataset):
         # collapse to binary: 0=clear, 1=cloud
         mask = (mask > 0).astype(np.int64)
 
-        #Albumentation
+        # Albumentations
         if self.transform:
-            #Transpose to the expected Albumentation format
+            # Transpose to the expected Albumentation format
             image = image.transpose(1, 2, 0)  # (C,H,W) -> (H,W,C)
 
             transformed = self.transform(image=image, mask=mask)
             image = transformed["image"]
             mask = transformed["mask"]
             
-            #Transpose to original format
+            # Transpose to original format
             image = image.transpose(2, 0, 1)  # (H,W,C) -> (C,H,W)
 
         # Convert to tensors - already (C, H, W), no permute needed

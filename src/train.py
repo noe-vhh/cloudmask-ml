@@ -40,6 +40,7 @@ def train():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     os.makedirs("results", exist_ok=True)
+    os.makedirs("models", exist_ok=True)
     sys.stdout = Tee(f"results/train_{timestamp}.txt")
     
     # Config
@@ -50,7 +51,7 @@ def train():
 
     # Device
     # Move everything to GPU if available, fall back to CPU
-    # ROCm implements AMD's HIP runtime as a drop-in replacement for CUDA, so ROCm/CUDU all surfaces through the same CUDA interface
+    # ROCm implements AMD's HIP runtime as a drop-in replacement for CUDA, so ROCm/CUDA all surfaces through the same CUDA interface
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
@@ -98,7 +99,7 @@ def train():
     # encoder_weights="imagenet" - start from pretrained weights, not random
     # This is called transfer learning - resnet34 already knows edges, textures, shapes
     # We fine-tune it for cloud detection rather than learning from scratch
-    #resnet34 was pretrained on ImageNet (millions of photos), highly valuable with smaller datasets
+    # resnet34 was pretrained on ImageNet (millions of photos), highly valuable with smaller datasets
     model = smp.Unet(
         encoder_name=model_cfg["encoder"],
         encoder_weights="imagenet",
