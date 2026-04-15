@@ -83,7 +83,7 @@ def evaluate():
             outputs = model(images)
             # squash to 0.0-1.0
             probs = torch.sigmoid(outputs)
-            # threshold → binary, drop channel dim -> (B, H, W)
+            # threshold -> binary, drop channel dim -> (B, H, W)
             preds = (probs > 0.5).long().squeeze(1)
             # masks is already (B, H, W) from the DataLoader
 

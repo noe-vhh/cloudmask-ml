@@ -30,7 +30,7 @@ A **U-Net** semantic segmentation model with a **ResNet34** encoder backbone, pr
 by a learned **band projector** (1×1 convolution) for sensor agnosticism.
 
 ```
-[Band Projector]  ←  per-sensor, maps N input bands → fixed internal channels
+[Band Projector]  ←  per-sensor, maps N input bands -> fixed internal channels
        ↓
 [U-Net Encoder]   ←  shared core, learns abstract features at decreasing resolution
        ↓
@@ -38,7 +38,7 @@ by a learned **band projector** (1×1 convolution) for sensor agnosticism.
        ↓
 [U-Net Decoder]   ←  reconstructs full resolution via skip connections
        ↓
-Output mask       ←  per-pixel cloud probability → binary label (0=clear, 1=cloud)
+Output mask       ←  per-pixel cloud probability -> binary label (0=clear, 1=cloud)
 ```
 
 **Sensor agnosticism:** each sensor gets its own projector (trained cheaply on ~100-200
@@ -47,7 +47,7 @@ Deployment is a single fused `.onnx` file per sensor - the Java pipeline never c
 
 ```
 Sentinel-2 (13 bands) ─┐
-Landsat-8  (11 bands) ─┤→ [Band Projector] → 32ch → [U-Net] → cloud mask
+Landsat-8  (11 bands) ─┤-> [Band Projector] -> 32ch -> [U-Net] -> cloud mask
 ClientSat  ( 4 bands) ─┘
 ```
 
@@ -153,9 +153,12 @@ the 342 samples we need (~2GB total).
 - [x] src/evaluate.py (IoU/F1 metrics)
 - [x] First training run complete (20 epochs, ResNet34, batch_size 8)
 - [x] Benchmark results against s2cloudless - F1: 0.7076, IoU: 0.5475 ✓ beats target
-- [ ] Improve training: more epochs + LR scheduler
-- [ ] src/export.py (ONNX export and validation)
+- [ ] Fix W&B run summary (captures early epoch snapshot - text log is source of truth for now)
+- [ ] LR scheduler + more epochs (loss still declining at ep20)
+- [ ] src/export.py (ONNX export - priority before Band Projector)
 - [ ] src/predict.py (single image inference)
+- [ ] Band Projector (explicit per-sensor module - after export complete)
+- [ ] MQ/LQ data expansion (only if HQ plateau hit)
 - [ ] Cross-sensor evaluation (Landsat-8)
 
 ---
