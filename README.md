@@ -1,7 +1,9 @@
 # CloudMask ML
 
-> Semantic segmentation prototype for cloud pixel detection in Sentinel-2 satellite imagery -
-> with a path to per-sensor deployment via ONNX export into existing Java-based EO pipelines.
+> A sensor-agnostic cloud masking system - shared U-Net core trained on Sentinel-2,
+> with lightweight per-sensor band projectors for new sensor onboarding from ~100-200
+> labelled samples. Designed for the small satellite industry where every client flies
+> a different sensor.
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.5%20%2B%20ROCm%206.2-orange)
@@ -16,40 +18,56 @@ Cloud masking is a critical preprocessing step in every Earth Observation (EO) p
 Cloudy pixels corrupt downstream analysis - crop health, flood extent, urban change - and
 must be identified and removed before any science can happen.
 
-This prototype asks: **can a small trained ML model replace a hand-tuned algorithmic approach,
-generalise across sensors, and still be lightweight enough for constrained deployment?**
+The core problem in the small satellite industry is not cloud masking itself - it's that
+**every client flies a different sensor**. Existing cloud masking solutions are hardcoded
+to specific sensors (Sentinel-2, Landsat-8). A small sat company flying a novel 4-band
+imager has no off-the-shelf solution, no large labelling budget, and no dedicated science
+team to build one.
 
-The answer is validated against [s2cloudless](https://github.com/sentinel-hub/sentinel2-cloudless),
-the industry-standard algorithmic baseline for Sentinel-2 cloud detection.
+This system is designed to solve that. **Sentinel-2 is the training vehicle for the
+shared core - not the product.** The value is delivered at the band projector layer,
+where any new sensor can be onboarded without retraining the core.
+
+The core is validated against [s2cloudless](https://github.com/sentinel-hub/sentinel2-cloudless)
+as a proof point. The headline result is the cross-sensor onboarding story: new sensor,
+~100-200 labelled samples, production-quality masks.
 
 ---
 
 ## Architecture
 
 A **U-Net** semantic segmentation model with a **ResNet34** encoder backbone, preceded
-by a learned **band projector** (1×1 convolution) for sensor agnosticism.
+by a learned **band projector** (1×1 convolution) per sensor.
 
 ```
-[Band Projector]  ←  per-sensor, maps N input bands -> fixed internal channels
+[Band Projector]  ←  per-sensor, maps N input bands → fixed internal channels
        ↓
-[U-Net Encoder]   ←  shared core, learns abstract features at decreasing resolution
+[U-Net Encoder]   ←  shared core, learns abstract cloud structure
        ↓
 [Bottleneck]
        ↓
 [U-Net Decoder]   ←  reconstructs full resolution via skip connections
        ↓
-Output mask       ←  per-pixel cloud probability -> binary label (0=clear, 1=cloud)
+Output mask       ←  per-pixel cloud probability → binary label (0=clear, 1=cloud)
 ```
 
-**Sensor agnosticism:** each sensor gets its own projector (trained cheaply on ~100-200
-labelled samples). The U-Net core is shared and improves with every sensor added.
-Deployment is a single fused `.onnx` file per sensor - the Java pipeline never changes.
+**What the core learns:** spatial and structural characteristics of clouds - shapes,
+textures, edges, morphology. Cloud structure is determined by atmospheric physics,
+not by which sensor captured it. This knowledge transfers across sensors.
+
+**What the projector handles:** spectral differences between sensors - different band
+counts, different wavelengths, different radiometric calibration. Each sensor gets its
+own projector trained cheaply on ~100-200 labelled samples.
 
 ```
 Sentinel-2 (13 bands) ─┐
-Landsat-8  (11 bands) ─┤-> [Band Projector] -> 32ch -> [U-Net] -> cloud mask
+Landsat-8  (11 bands) ─┤→ [Band Projector] → 32ch → [Shared U-Net Core] → mask
 ClientSat  ( 4 bands) ─┘
 ```
+
+**Core integrity:** once trained, the core is frozen. Sensor-specific data only ever
+touches the projector. The core improves periodically via joint retraining across all
+accumulated sensor data - not per-sensor fine-tuning.
 
 ---
 
@@ -63,7 +81,7 @@ ClientSat  ( 4 bands) ─┘
 | Export | ONNX 1.21 | Portable format - bridges Python training to Java pipeline |
 | Runtime | onnxruntime | Runs ONNX in Java, C++, Python with near-native speed |
 | GPU | AMD RX 6800 XT (16GB) | Available hardware, ROCm verified |
-| Dataset | CloudSEN12Plus (HQ) | 342 human-expert labelled Sentinel-2 patches |
+| Dataset | CloudSEN12Plus (HQ) | Sentinel-2 human-expert labelled patches - training vehicle for core |
 | Experiment Tracking | Weights & Biases (wandb) | Live loss curves, GPU metrics, hyperparameter logging |
 
 ---
@@ -84,10 +102,10 @@ cloudmask-ml/
 ├── models/
 │   ├── core/                    # Shared U-Net core checkpoints
 │   ├── projectors/              # Per-sensor band projectors
-│   └── onnx/                    # Fused deployment models
+│   └── onnx/                    # Fused deployment models, one per sensor
 ├── config.yaml                  # All hyperparameters and paths
 ├── SETUP.md                     # Full environment setup (ROCm, PyTorch)
-├── NOTES.md                     # Concise project reference
+├── NOTES.md                     # Concise project reference and all decisions
 ├── LEARNING.md                  # Concepts and ELI5 explanations
 └── requirements.txt             # Python dependencies
 ```
@@ -106,7 +124,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Extract the dataset (342 HQ samples, ~2GB):
+Extract the dataset (HQ samples):
 
 ```bash
 python data/download_cloudsen12.py
@@ -126,9 +144,11 @@ All hyperparameters and paths are configured in `config.yaml`.
 
 **CloudSEN12Plus** - `isp-uv-es/CloudSEN12Plus` on HuggingFace.
 
-We extract only the **HQ fixed subset** (human expert labels, reviewed in v1.1):
+We use the **HQ subset** (human expert labels, reviewed in v1.1). Sentinel-2 is the
+training vehicle for the shared core - chosen because it is the best available public
+dataset with expert human labels, not because the system is Sentinel-2-specific.
 
-| Split | Samples |
+| Split | Samples (current) |
 |-------|---------|
 | train | 267 |
 | validation | 23 |
@@ -136,54 +156,75 @@ We extract only the **HQ fixed subset** (human expert labels, reviewed in v1.1):
 | **total** | **342** |
 
 The full dataset is ~101GB. Targeted extraction via HTTP range requests pulls only
-the 342 samples we need (~2GB total).
+the samples needed.
+
+---
+
+## Evaluation
+
+Three-tier evaluation strategy:
+
+| Tier | Setup | Purpose |
+|------|-------|---------|
+| 1 | In-distribution Sentinel-2 test set | Validate core works - proof point vs s2cloudless |
+| 2 | Zero-shot Landsat-8 | Measure raw cross-sensor transfer - diagnostic checkpoint |
+| 3 | Fine-tuned Landsat-8 projector | Tier 2 vs Tier 3 delta = onboarding cost story - headline result |
 
 ---
 
 ## Status
 
-## Status
-
 - [x] GPU compute stack (ROCm 6.4 + PyTorch 2.5, AMD RX 6800 XT verified)
-- [x] Dataset extraction pipeline (342 HQ samples via HTTP range requests + rasterio)
-- [x] Full extraction run (342 samples across train/validation/test)
+- [x] Dataset extraction pipeline (HQ samples via HTTP range requests + rasterio)
 - [x] config.yaml (model, training, data configuration)
 - [x] src/dataset.py (lazy loading, augmentation, binary mask collapse)
-- [x] src/train.py - training loop, augmentation, transfer learning, checkpointing, W&B logging
+- [x] src/train.py (training loop, augmentation, transfer learning, checkpointing, W&B)
 - [x] src/evaluate.py (IoU/F1 metrics)
-- [x] First training run complete (20 epochs, ResNet34, batch_size 8)
-- [x] Benchmark results against s2cloudless - F1: 0.7076, IoU: 0.5475 ✓ beats target
-- [x] Fix W&B run summary (best_val_loss and best_epoch now written explicitly to wandb.run.summary)
-- [ ] LR scheduler + more epochs (loss still declining at ep20)
-- [ ] src/export.py (ONNX export - priority before Band Projector)
+- [x] First training run (20 epochs, ResNet34, batch_size 8)
+- [x] Tier 1 baseline - F1: 0.7076, IoU: 0.5475 ✓ beats s2cloudless
+- [ ] Investigate full HQ data availability (fixed=0 + fixed=1 counts)
+- [ ] LR scheduler (CosineAnnealingWarmRestarts) + robustness augmentation + 100 epochs
+- [ ] src/export.py (ONNX export)
 - [ ] src/predict.py (single image inference)
-- [ ] Band Projector (explicit per-sensor module - after export complete)
-- [ ] MQ/LQ data expansion (only if HQ plateau hit)
-- [ ] Cross-sensor evaluation (Landsat-8)
+- [ ] Band Projector module (explicit per-sensor module)
+- [ ] Tier 2 - zero-shot Landsat-8
+- [ ] Tier 3 - fine-tuned Landsat-8 projector
 
 ---
 
 ## Roadmap
 
-**Prototype (current)**
-Train and benchmark on Sentinel-2 CloudSEN12 HQ data. Validate against s2cloudless.
-Export to ONNX. Demonstrate Java pipeline integration.
+**Phase 1 - Core foundation (current)**
+Investigate full HQ data availability. Implement CosineAnnealingWarmRestarts and
+robustness augmentation (blur, noise, elastic distortion). Train core on best available
+HQ data for 100 epochs. Core is then frozen - it is the foundation for everything else.
 
-**Cross-sensor validation**
-Evaluate zero-shot on Landsat-8 (USGS Biome dataset). Fine-tune band projector.
-Quantify onboarding cost: labels needed, training time, accuracy delta.
+**Phase 2 - Deployment bridge**
+ONNX export and numerical validation. Single image inference. Java pipeline integration
+demonstration.
 
-**Production architecture**
-Per-sensor projectors trained from shared core. Active learning labelling pipeline.
-Periodic core retraining as multi-sensor data accumulates.
+**Phase 3 - Band projector**
+Explicit per-sensor projector module. Sentinel-2 projector trained against frozen core.
+Architecture properly separated.
 
-**On-board inference (research)**
-Quantised ONNX models for constrained satellite hardware. Federated learning vision.
+**Phase 4 - Cross-sensor validation**
+Tier 2: zero-shot Landsat-8 - first empirical test of core generalisation.
+Tier 3: Landsat-8 projector fine-tuning - the headline result.
+Tier 2 vs Tier 3 delta = the onboarding cost story.
+
+**Phase 5 - Characterisation**
+Generalisation bounds: what transfers, what doesn't, why. Honest small sat assessment.
+Report / paper content.
+
+**Phase 6 - Future**
+Partial core unfreezing for severely degraded sensors. Core v2 joint retraining.
+MQ data integration if diversity gap confirmed by Tier 2.
 
 ---
 
 ## Goal
 
-Demonstrate that a lightweight ML approach can match or exceed the accuracy of a
-hand-tuned algorithmic approach for cloud masking, while providing a clear path to deployment
-across multiple sensors via ONNX export - without touching the existing Java pipeline.
+Demonstrate a sensor-agnostic cloud masking system where a new sensor can be onboarded
+with ~100-200 labelled samples, achieving production-quality masks without retraining
+the shared core - with a clear path to deployment via ONNX export into existing
+Java-based EO pipelines.

@@ -1,25 +1,40 @@
 model:
-  # Pretrained CNN backbone that acts as the U-Net encoder - resnet34 is lightweight and well-tested; swap for resnet50/efficientnet for more capacity
+  # Pretrained CNN backbone that acts as the U-Net encoder - resnet34 is the right choice
+  # for maximising core quality on a small dataset. Swap for mobilenetv2/efficientnet for
+  # on-board satellite deployment where size and speed are constrained
   encoder: resnet34
-  # Number of spectral bands fed into the model - 13 for full Sentinel-2 L1C; change this when targeting other sensors
+  # Number of spectral bands fed into the model - 13 for full Sentinel-2 L1C
+  # Change this when targeting other sensors (band projector not yet a separate module)
   in_channels: 13
-  # Output channels - 1 for binary segmentation with BCEWithLogitsLoss; use 2+ for multi-class with CrossEntropyLoss
+  # Output channels - 1 for binary segmentation with BCEWithLogitsLoss
   num_classes: 1
 
 training:
-  # Step size for weight updates during backpropagation - too high = unstable training, too low = slow convergence; 0.001 is a safe starting point
+  # Starting LR for the scheduler - cosine decay takes it from here down to lr_min
   learning_rate: 0.001
-  # Number of complete passes through the training set - increase if validation loss is still improving at epoch 20
-  epochs: 20
-  # Number of samples per gradient update - larger = more stable gradients but more VRAM; 8 is conservative for 512x512 patches on 16GB
+  # Total training epochs - 100 gives 5 warm restart cycles with T_0=20
+  # Loss was still declining at epoch 20 in run 1. This is the correct ceiling to probe
+  epochs: 100
+  # Samples per gradient update - 8 is conservative for 512x512 patches on 16GB VRAM
   batch_size: 8
+  # LR scheduler - cosineWarmRestarts is CosineAnnealingWarmRestarts
+  # Does not rely on val loss signal (important: val set is only 23 samples, too noisy)
+  # Warm restarts help escape local minima - each cycle: explore -> refine -> reset -> repeat
+  lr_scheduler: cosineWarmRestarts
+  # First cycle length in epochs - with T_0=20 and epochs=100 we get 5 restart cycles
+  lr_T0: 20
+  # Cycle length multiplier - 1 means all cycles are equal length (T_0 epochs each)
+  lr_T_mult: 1
+  # LR floor - cosine curve decays to this value at the end of each cycle
+  # 1e-6 means extremely fine steps at the bottom of each cycle
+  lr_min: 0.000001
 
 data:
   # Path to training split - model learns from this data
   train_dir: data/extracted/cloudsen12/train
-  # Path to validation split - monitors overfitting during training, never trained on
+  # Path to validation split - monitors overfitting, never trained on
   val_dir: data/extracted/cloudsen12/validation
-  # Path to test split - final honest benchmark; only evaluate here once, at the end
+  # Path to test split - final honest benchmark; evaluate here once, at the end
   test_dir: data/extracted/cloudsen12/test
-  # Raw Sentinel-2 uint16 values divided by this to normalise to 0.0-1.0 range - change per sensor
+  # Raw Sentinel-2 uint16 values divided by this to normalise to 0.0-1.0 range
   sensor_max_reflectance: 10000.0
