@@ -58,15 +58,15 @@ def fetch_sample(url: str, offset: int, length: int) -> np.ndarray:
 
 def extract_split(split: str):
     """
-    Extract all HQ fixed samples for one split and save as .npy pairs
+    Extract all HQ samples for one split and save as .npy pairs
     """
     print(f"\n--- {split} ---")
 
     # Load and filter metadata
     parquet_path = DATA_DIR / split / "metadata.parquet"
     df = pq.read_table(parquet_path).to_pandas()
-    hq = df[(df["label_type"] == "high") & (df["fixed"] == 1)]
-    print(f"HQ fixed samples: {len(hq)}")
+    hq = df[(df["label_type"] == "high")]
+    print(f"HQ samples (all): {len(hq)}")
 
     # Output folder for this split
     out_split = OUT_DIR / split
