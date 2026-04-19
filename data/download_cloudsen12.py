@@ -75,12 +75,12 @@ def extract_split(split: str):
 
     # Each split may have multiple .mlstac files, process per unique URL
     for url, group in tqdm(hq.groupby("url"), desc=f"{split} files", unit="file"):
-        print(f"Processing {url.split('/')[-1]} ({len(group)} samples)")
+        tqdm.write(f"Processing {url.split('/')[-1]} ({len(group)} samples)")
 
         # Find JSON boundary and fetch index - once per .mlstac file
         boundary = find_json_boundary(url)
         index = fetch_index(url, boundary)
-        print(f"  Index boundary: {boundary}, entries: {len(index)}")
+        tqdm.write(f"  Index boundary: {boundary}, entries: {len(index)}")
 
         for _, row in tqdm(group.iterrows(), desc="  samples", unit="sample", total=len(group), leave=False):
             did = row["datapoint_id"]
@@ -89,17 +89,17 @@ def extract_split(split: str):
 
             # Skip if already extracted (allows resuming interrupted runs)
             if out_image.exists() and out_mask.exists():
-                print(f"  Skipping {did} (already exists)")
+                tqdm.write(f"  Skipping {did} (already exists)")
                 continue
 
             if did not in index:
-                print(f"  WARNING: {did} not in index, skipping")
+                tqdm.write(f"  WARNING: {did} not in index, skipping")
                 continue
 
             rel_offset, length = index[did]
             abs_offset = boundary + rel_offset
 
-            print(f"  Extracting {did}...")
+            tqdm.write(f"  Extracting {did}...")
             data = fetch_sample(url, abs_offset, length)
 
             # Split bands: 0-12 = spectral image, 13 = human cloud label
