@@ -1,9 +1,6 @@
 # CloudMask ML
 
-> A sensor-agnostic cloud masking system - shared U-Net core trained on Sentinel-2,
-> with lightweight per-sensor band projectors for new sensor onboarding from ~100-200
-> labelled samples. Designed for the small satellite industry where every client flies
-> a different sensor.
+> A sensor-agnostic cloud masking system - shared U-Net core trained on Sentinel-2, with lightweight per-sensor band projectors for new sensor onboarding from ~100-200 labelled samples. Designed for the small satellite industry where every client flies a different sensor.
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.5%20%2B%20ROCm%206.2-orange)
@@ -14,23 +11,13 @@
 
 ## What This Is
 
-Cloud masking is a critical preprocessing step in every Earth Observation (EO) pipeline.
-Cloudy pixels corrupt downstream analysis - crop health, flood extent, urban change - and
-must be identified and removed before any science can happen.
+Cloud masking is a critical preprocessing step in every Earth Observation (EO) pipeline. Cloudy pixels corrupt downstream analysis - crop health, flood extent, urban change - and must be identified and removed before any science can happen.
 
-The core problem in the small satellite industry is not cloud masking itself - it's that
-**every client flies a different sensor**. Existing cloud masking solutions are hardcoded
-to specific sensors (Sentinel-2, Landsat-8). A small sat company flying a novel 4-band
-imager has no off-the-shelf solution, no large labelling budget, and no dedicated science
-team to build one.
+The core problem in the small satellite industry is not cloud masking itself - it's that **every client flies a different sensor**. Existing cloud masking solutions are hardcoded to specific sensors (Sentinel-2, Landsat-8). A small sat company flying a novel 4-band imager has no off-the-shelf solution, no large labelling budget, and no dedicated science team to build one.
 
-This system is designed to solve that. **Sentinel-2 is the training vehicle for the
-shared core - not the product.** The value is delivered at the band projector layer,
-where any new sensor can be onboarded without retraining the core.
+This system is designed to solve that. **Sentinel-2 is the training vehicle for the shared core - not the product.** The value is delivered at the band projector layer, where any new sensor can be onboarded with ~100-200 labelled samples without retraining the core.
 
-The core is validated against [s2cloudless](https://github.com/sentinel-hub/sentinel2-cloudless)
-as a proof point. The headline result is the cross-sensor onboarding story: new sensor,
-~100-200 labelled samples, production-quality masks.
+The core is validated against [s2cloudless](https://github.com/sentinel-hub/sentinel2-cloudless) as a proof point. The headline result is the cross-sensor onboarding story: new sensor, ~100-200 labelled samples, production-quality masks.
 
 ---
 
@@ -40,10 +27,10 @@ A **U-Net** semantic segmentation model with a **ResNet34** encoder backbone, pr
 by a learned **band projector** (1×1 convolution) per sensor.
 
 ```
-[Band Projector]  ←  per-sensor, maps N input bands → fixed internal channels
+[Band Projector]  ←  per-sensor, maps N input bands → 32 channels
        ↓
 [U-Net Encoder]   ←  shared core, learns abstract cloud structure
-       ↓
+       ↓               frozen after Phase 1 training
 [Bottleneck]
        ↓
 [U-Net Decoder]   ←  reconstructs full resolution via skip connections
@@ -82,7 +69,7 @@ accumulated sensor data - not per-sensor fine-tuning.
 | Runtime | onnxruntime | Runs ONNX in Java, C++, Python with near-native speed |
 | GPU | AMD RX 6800 XT (16GB) | Available hardware, ROCm verified |
 | Dataset | CloudSEN12Plus (HQ) | Sentinel-2 human-expert labelled patches - training vehicle for core |
-| Experiment Tracking | Weights & Biases (wandb) | Live loss curves, GPU metrics, hyperparameter logging |
+| Experiment Tracking | Weights & Biases | Live loss curves, GPU metrics, hyperparameter logging |
 
 ---
 
@@ -97,16 +84,17 @@ cloudmask-ml/
 │   ├── dataset.py               # Generic PyTorch Dataset - sensor agnostic
 │   ├── train.py                 # Training loop with augmentation + checkpointing
 │   ├── evaluate.py              # IoU/F1 metrics against val/test set
-│   ├── export.py                # ONNX export and validation
-│   └── predict.py               # Single image inference
+│   ├── export.py                # ONNX export and validation (pending)
+│   └── predict.py               # Single image inference (pending)
 ├── models/
 │   ├── core/                    # Shared U-Net core checkpoints
-│   ├── projectors/              # Per-sensor band projectors
+│   ├── projectors/              # Per-sensor band projectors (pending)
 │   └── onnx/                    # Fused deployment models, one per sensor
 ├── config.yaml                  # All hyperparameters and paths
 ├── SETUP.md                     # Full environment setup (ROCm, PyTorch)
-├── NOTES.md                     # Concise project reference and all decisions
-├── LEARNING.md                  # Concepts and ELI5 explanations
+├── NOTES.md                     # Live working reference - status, runs, next steps
+├── LEARNING.md                  # How everything works - analogies, diagrams, mechanics
+├── DECISIONS.md                 # Why decisions were made - alternatives considered
 └── requirements.txt             # Python dependencies
 ```
 
@@ -149,7 +137,7 @@ training vehicle for the shared core - chosen because it is the best available p
 dataset with expert human labels, not because the system is Sentinel-2-specific.
 
 | Split | Samples (current) |
-|-------|---------|
+|-------|-------------------|
 | train | 267 |
 | validation | 23 |
 | test | 52 |
@@ -162,13 +150,17 @@ the samples needed.
 
 ## Evaluation
 
-Three-tier evaluation strategy:
+Four-tier evaluation strategy:
 
-| Tier | Setup | Purpose |
-|------|-------|---------|
-| 1 | In-distribution Sentinel-2 test set | Validate core works - proof point vs s2cloudless |
-| 2 | Zero-shot Landsat-8 | Measure raw cross-sensor transfer - diagnostic checkpoint |
-| 3 | Fine-tuned Landsat-8 projector | Tier 2 vs Tier 3 delta = onboarding cost story - headline result |
+| Tier | Setup | Purpose | Status |
+|------|-------|---------|--------|
+| 1 | In-distribution Sentinel-2 test set | Proof point vs s2cloudless | ✓ F1: 0.7076, IoU: 0.5475 |
+| 2 | Zero-shot Landsat-8 (11 bands) | Raw cross-sensor transfer - diagnostic checkpoint | Pending |
+| 3 | Fine-tuned Landsat-8 projector (11 bands) | Tier 2 vs Tier 3 delta = headline result | Pending |
+| 4 | Fine-tuned projector on 4-band data (38-Cloud/95-Cloud) | Band-poverty test - small sat client reality | Pending |
+
+The **headline result is the Tier 2 vs Tier 3 delta** - the empirical proof of the
+sensor-agnosticism claim. Tier 1 (Sentinel-2) is a proof point, not the product story.
 
 ---
 
@@ -179,14 +171,14 @@ Three-tier evaluation strategy:
 - [x] config.yaml (model, training, data configuration)
 - [x] src/dataset.py (lazy loading, augmentation, binary mask collapse)
 - [x] src/train.py (training loop, augmentation, transfer learning, checkpointing, W&B)
-- [x] src/evaluate.py (IoU/F1 metrics)
+- [x] src/evaluate.py (IoU/F1/Precision/Recall/Accuracy)
 - [x] First training run (20 epochs, ResNet34, batch_size 8)
 - [x] Tier 1 baseline - F1: 0.7076, IoU: 0.5475 ✓ beats s2cloudless
 - [ ] Investigate full HQ data availability (fixed=0 + fixed=1 counts)
-- [ ] LR scheduler (CosineAnnealingWarmRestarts) + robustness augmentation + 100 epochs
+- [ ] CosineAnnealingWarmRestarts + robustness augmentation + 100 epochs
 - [ ] src/export.py (ONNX export)
 - [ ] src/predict.py (single image inference)
-- [ ] Band Projector module (explicit per-sensor module)
+- [ ] Band Projector module (explicit per-sensor nn.Module)
 - [ ] Tier 2 - zero-shot Landsat-8
 - [ ] Tier 3 - fine-tuned Landsat-8 projector
 
