@@ -6,11 +6,12 @@ import json
 import tempfile
 import os
 from pathlib import Path
+from tqdm import tqdm
 
 # Parquet metadata path
 DATA_DIR = Path("data/raw/cloudsen12")
 # Extracted .npy files path
-OUT_DIR = Path("data/cloudsen12/extracted")
+OUT_DIR = Path("data/extracted/cloudsen12")
 # How far into the file to search for the JSON boundary
 INDEX_FETCH_SIZE = 700_000
 # JPEG2000 magic bytes - marks start of binary data, end of JSON index
@@ -73,7 +74,7 @@ def extract_split(split: str):
     out_split.mkdir(parents=True, exist_ok=True)
 
     # Each split may have multiple .mlstac files, process per unique URL
-    for url, group in hq.groupby("url"):
+    for url, group in tqdm(hq.groupby("url"), desc=f"{split} files", unit="file"):
         print(f"Processing {url.split('/')[-1]} ({len(group)} samples)")
 
         # Find JSON boundary and fetch index - once per .mlstac file
@@ -81,7 +82,7 @@ def extract_split(split: str):
         index = fetch_index(url, boundary)
         print(f"  Index boundary: {boundary}, entries: {len(index)}")
 
-        for _, row in group.iterrows():
+        for _, row in tqdm(group.iterrows(), desc="  samples", unit="sample", total=len(group), leave=False):
             did = row["datapoint_id"]
             out_image = out_split / f"{did}_image.npy"
             out_mask = out_split / f"{did}_mask.npy"
