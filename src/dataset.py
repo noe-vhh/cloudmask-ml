@@ -2,11 +2,13 @@ import torch
 import numpy as np
 from pathlib import Path
 from torch.utils.data import Dataset
+import albumentations as A
 
 class CloudSEN12Dataset(Dataset):
     def __init__(self, data_dir: str, bands: list[int] = None, transform=None, sensor_max_reflectance: float = 10000.0):
         self.bands = bands if bands is not None else list(range(13))
         self.transform = transform
+        self.resize = A.Compose([A.Resize(height=512, width=512)])
         self.sensor_max_reflectance = sensor_max_reflectance
 
         # Find all image files, derive mask paths from naming convention
@@ -40,6 +42,15 @@ class CloudSEN12Dataset(Dataset):
 
         # collapse to binary: 0=clear, 1=cloud
         mask = (mask > 0).astype(np.int64)
+
+        # Resize to 512x512 - handles variable resolution samples in full HQ set
+        # (C,H,W) -> (H,W,C)
+        image = image.transpose(1, 2, 0)
+        resized = self.resize(image=image, mask=mask)
+        image = resized["image"]
+        mask = resized["mask"]
+        # (H,W,C) -> (C,H,W)
+        image = image.transpose(2, 0, 1)
 
         # Albumentations
         if self.transform:

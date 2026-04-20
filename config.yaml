@@ -10,24 +10,11 @@ model:
   num_classes: 1
 
 training:
-  # Starting LR for the scheduler - cosine decay takes it from here down to lr_min
   learning_rate: 0.001
-  # Total training epochs - 100 gives 5 warm restart cycles with T_0=20
-  # Loss was still declining at epoch 20 in run 1. This is the correct ceiling to probe
-  epochs: 100
-  # Samples per gradient update - 8 is conservative for 512x512 patches on 16GB VRAM
-  batch_size: 8
-  # LR scheduler - cosineWarmRestarts is CosineAnnealingWarmRestarts
-  # Does not rely on val loss signal (important: val set is only 23 samples, too noisy)
-  # Warm restarts help escape local minima - each cycle: explore -> refine -> reset -> repeat
-  lr_scheduler: cosineWarmRestarts
-  # First cycle length in epochs - with T_0=20 and epochs=100 we get 5 restart cycles
-  lr_T0: 20
-  # Cycle length multiplier - 1 means all cycles are equal length (T_0 epochs each)
-  lr_T_mult: 1
-  # LR floor - cosine curve decays to this value at the end of each cycle
-  # 1e-6 means extremely fine steps at the bottom of each cycle
-  lr_min: 0.000001
+  # Run 2 - 20 epochs, fixed LR, full HQ dataset. Scheduler planned for Run 3.
+  epochs: 20
+  # Increased from 8 (run 1) - better GPU utilisation on 16GB VRAM
+  batch_size: 16
 
 data:
   # Path to training split - model learns from this data

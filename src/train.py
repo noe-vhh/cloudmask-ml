@@ -94,8 +94,8 @@ def train():
     # shuffle=True for train - prevents model learning order of samples
     # shuffle=False for val - order doesn't matter, consistency does
     # num_workers=4 - parallel workers loading data from disk while GPU trains
-    train_loader = DataLoader(train_dataset, batch_size=train_cfg["batch_size"], shuffle=True, num_workers=4)
-    val_loader = DataLoader(val_dataset, batch_size=train_cfg["batch_size"], shuffle=False, num_workers=4)
+    train_loader = DataLoader(train_dataset, batch_size=train_cfg["batch_size"], shuffle=True, num_workers=4, pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=train_cfg["batch_size"], shuffle=False, num_workers=4, pin_memory=True)
 
     # Model
     # encoder_weights="imagenet" - start from pretrained weights, not random
@@ -178,7 +178,7 @@ def train():
         if avg_val < best_val_loss:
             best_val_loss = avg_val
             best_epoch = epoch + 1
-            torch.save(model.state_dict(), "models/core/unet_resnet34_core_best.pth")
+            torch.save(model.state_dict(), f"models/core/unet_resnet34_core_{timestamp}_best.pth")
             print(f"  Best model saved (val loss: {avg_val:.4f})")
 
     # Save best epoch and best value loss to W&B summary
@@ -186,7 +186,7 @@ def train():
     wandb.run.summary["best_epoch"] = best_epoch
 
     # Save final checkpoint regardless
-    torch.save(model.state_dict(), "models/core/unet_resnet34_core_last.pth")
+    torch.save(model.state_dict(), f"models/core/unet_resnet34_core_{timestamp}_last.pth")
     wandb.finish()
     print("Training complete. Final model saved to models/cloudmask_last.pth")
 

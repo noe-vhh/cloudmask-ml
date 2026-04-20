@@ -11,8 +11,8 @@ Covers GPU compute stack and Python environment setup from a clean Linux install
 |-----------|------|
 | GPU | AMD Radeon RX 6800 XT (Navi 21, gfx1030, 16GB VRAM) |
 | OS | Ubuntu 24.04 LTS (Noble) |
-| Kernel | 6.17+ |
-| ROCm | 6.4 |
+| ROCm | 6.2 |
+| Kernel | 6.8.0-55 |
 | PyTorch | 2.x (ROCm 6.2 wheel) |
 
 > **Note:** ROCm 6.2 PyTorch wheels are used on a ROCm 6.4 install -
@@ -218,6 +218,23 @@ VRAM: 16.0 GB
 > ROCm implements AMD's HIP API as a drop-in replacement for CUDA.
 > PyTorch exposes both through the same `.cuda()` interface for compatibility.
 > `torch.cuda.is_available()` returning `True` on AMD + ROCm is correct.
+
+---
+
+## Pre-Training Checklist
+
+Run these before every training session:
+
+```bash
+# Drop desktop - frees GPU from display rendering, prevents driver conflicts
+sudo systemctl isolate multi-user.target
+
+# Set fan manually - auto curve is unreliable, GPU will thermal shutdown without this
+rocm-smi --setfan 80
+
+# Required env var - disables SDMA memory transfer path, prevents amdgpu driver hang
+export HSA_ENABLE_SDMA=0
+```
 
 ---
 

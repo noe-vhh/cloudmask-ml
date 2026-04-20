@@ -3,6 +3,7 @@ import yaml
 from datetime import datetime
 import sys
 import os
+import glob
 from torch.utils.data import DataLoader
 import segmentation_models_pytorch as smp
 from dataset import CloudSEN12Dataset
@@ -37,7 +38,10 @@ def evaluate():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    wandb.init(project="cloudmask-ml", name="evaluate-test-set", job_type="eval")
+    checkpoints = glob.glob("models/core/*_best.pth")
+    checkpoint_path = max(checkpoints, key=os.path.getmtime)
+
+    wandb.init(project="cloudmask-ml", name=f"eval-{os.path.basename(checkpoint_path)}", job_type="eval")
 
     # Load model from checkpoint
     model = smp.Unet(
@@ -50,9 +54,9 @@ def evaluate():
 
     # weights_only=True - PyTorch only loads the tensor weights from the file (avoids runtime warning)
     # The default False allows arbitrary Python objects to be deserialised, which is a security risk if you ever load a checkpoint from an untrusted source
-    model.load_state_dict(torch.load("models/core/unet_resnet34_core_best.pth", map_location=device, weights_only=True))
+    model.load_state_dict(torch.load(checkpoint_path, map_location=device, weights_only=True))
     model.eval()
-    print("Model loaded from models/core/unet_resnet34_core_best.pth")
+    print(f"Loading checkpoint: {checkpoint_path}")
 
     # Test dataset and loader
     test_dataset = CloudSEN12Dataset(

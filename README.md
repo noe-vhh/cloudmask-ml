@@ -138,10 +138,10 @@ dataset with expert human labels, not because the system is Sentinel-2-specific.
 
 | Split | Samples (current) |
 |-------|-------------------|
-| train | 267 |
-| validation | 23 |
-| test | 52 |
-| **total** | **342** |
+| train | 9,177 |
+| validation | 612 |
+| test | 1,060 |
+| **total** | **10,849** |
 
 The full dataset is ~101GB. Targeted extraction via HTTP range requests pulls only
 the samples needed.
@@ -166,7 +166,7 @@ sensor-agnosticism claim. Tier 1 (Sentinel-2) is a proof point, not the product 
 
 ## Status
 
-- [x] GPU compute stack (ROCm 6.4 + PyTorch 2.5, AMD RX 6800 XT verified)
+- [x] GPU compute stack (ROCm 6.2 + kernel 6.8.0-55 + PyTorch 2.5, AMD RX 6800 XT verified)
 - [x] Dataset extraction pipeline (HQ samples via HTTP range requests + rasterio)
 - [x] config.yaml (model, training, data configuration)
 - [x] src/dataset.py (lazy loading, augmentation, binary mask collapse)
@@ -174,7 +174,9 @@ sensor-agnosticism claim. Tier 1 (Sentinel-2) is a proof point, not the product 
 - [x] src/evaluate.py (IoU/F1/Precision/Recall/Accuracy)
 - [x] First training run (20 epochs, ResNet34, batch_size 8)
 - [x] Tier 1 baseline - F1: 0.7076, IoU: 0.5475 ✓ beats s2cloudless
-- [ ] Investigate full HQ data availability (fixed=0 + fixed=1 counts)
+- [x] dataset.py - A.Resize(512,512) for mixed resolution HQ samples
+- [x] Full HQ data extraction verified (9,177 train / 612 val / 1,060 test)
+- [ ] Run 2 - full HQ dataset, 20 epochs, batch_size 16
 - [ ] CosineAnnealingWarmRestarts + robustness augmentation + 100 epochs
 - [ ] src/export.py (ONNX export)
 - [ ] src/predict.py (single image inference)
@@ -187,7 +189,7 @@ sensor-agnosticism claim. Tier 1 (Sentinel-2) is a proof point, not the product 
 ## Roadmap
 
 **Phase 1 - Core foundation (current)**
-Investigate full HQ data availability. Implement CosineAnnealingWarmRestarts and
+Full HQ data verified (10,849 samples). Implement CosineAnnealingWarmRestarts and
 robustness augmentation (blur, noise, elastic distortion). Train core on best available
 HQ data for 100 epochs. Core is then frozen - it is the foundation for everything else.
 
