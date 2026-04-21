@@ -176,10 +176,11 @@ sensor-agnosticism claim. Tier 1 (Sentinel-2) is a proof point, not the product 
 - [x] Tier 1 baseline - F1: 0.7076, IoU: 0.5475 ✓ beats s2cloudless
 - [x] dataset.py - A.Resize(512,512) for mixed resolution HQ samples
 - [x] Full HQ data extraction verified (9,177 train / 612 val / 1,060 test)
-- [ ] Run 2 - full HQ dataset, 20 epochs, batch_size 16
-- [ ] CosineAnnealingWarmRestarts + robustness augmentation + 100 epochs
-- [ ] src/export.py (ONNX export)
-- [ ] src/predict.py (single image inference)
+- [ ] Run 2 - full HQ dataset, 20 epochs, batch_size 16 (in progress)
+- [ ] CosineAnnealingWarmRestarts + robustness augmentation + 100 epochs (Runs 3-5)
+- [ ] src/export.py (ONNX export and numerical validation)
+- [ ] src/predict.py (single image inference, visualisation, CPU timing benchmark)
+- [ ] CPU cost benchmark - ResNet34 vs MobileNetV2 vs INT8 vs 256×256 on laptop CPU
 - [ ] Band Projector module (explicit per-sensor nn.Module)
 - [ ] Tier 2 - zero-shot Landsat-8
 - [ ] Tier 3 - fine-tuned Landsat-8 projector
@@ -194,8 +195,11 @@ robustness augmentation (blur, noise, elastic distortion). Train core on best av
 HQ data for 100 epochs. Core is then frozen - it is the foundation for everything else.
 
 **Phase 2 - Deployment bridge**
-ONNX export and numerical validation. Single image inference. Java pipeline integration
-demonstration.
+ONNX export and numerical validation. Single image inference via `predict.py`.
+CPU cost benchmarking: ResNet34 float32 → MobileNetV2 float32 → MobileNetV2 INT8 → MobileNetV2 INT8 256×256.
+Each config measured for F1/IoU and CPU inference time on a Fargate-proxy CPU machine.
+Java pipeline integration demonstration. AWS Fargate is CPU-only - the cloud deployment
+target is MobileNetV2 INT8, not ResNet34. Measure before claiming.
 
 **Phase 3 - Band projector**
 Explicit per-sensor projector module. Sentinel-2 projector trained against frozen core.
