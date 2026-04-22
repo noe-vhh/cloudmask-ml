@@ -154,7 +154,7 @@ Four-tier evaluation strategy:
 
 | Tier | Setup | Purpose | Status |
 |------|-------|---------|--------|
-| 1 | In-distribution Sentinel-2 test set | Proof point vs s2cloudless | ✓ F1: 0.7076, IoU: 0.5475 |
+| 1 | In-distribution Sentinel-2 test set | Proof point vs s2cloudless | ✓ F1: 0.9198, IoU: 0.8515 (Run 2) |
 | 2 | Zero-shot Landsat-8 (11 bands) | Raw cross-sensor transfer - diagnostic checkpoint | Pending |
 | 3 | Fine-tuned Landsat-8 projector (11 bands) | Tier 2 vs Tier 3 delta = headline result | Pending |
 | 4 | Fine-tuned projector on 4-band data (38-Cloud/95-Cloud) | Band-poverty test - small sat client reality | Pending |
@@ -176,7 +176,8 @@ sensor-agnosticism claim. Tier 1 (Sentinel-2) is a proof point, not the product 
 - [x] Tier 1 baseline - F1: 0.7076, IoU: 0.5475 ✓ beats s2cloudless
 - [x] dataset.py - A.Resize(512,512) for mixed resolution HQ samples
 - [x] Full HQ data extraction verified (9,177 train / 612 val / 1,060 test)
-- [ ] Run 2 - full HQ dataset, 20 epochs, batch_size 16 (in progress)
+- [x] Run 2 - full HQ dataset, 20 epochs, batch_size 16 ✓ F1: 0.9198, IoU: 0.8515
+- [ ] Training optimisations - mixed precision, persistent workers, cudnn.benchmark
 - [ ] CosineAnnealingWarmRestarts + robustness augmentation + 100 epochs (Runs 3-5)
 - [ ] src/export.py (ONNX export and numerical validation)
 - [ ] src/predict.py (single image inference, visualisation, CPU timing benchmark)
