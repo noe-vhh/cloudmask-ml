@@ -11,9 +11,17 @@ model:
 
 training:
   learning_rate: 0.001
-  # Run 2 - 20 epochs, fixed LR, full HQ dataset. Scheduler planned for Run 3.
+  # CosineAnnealingWarmRestarts - time-based decay, not val-loss-based
+  # Val set (612 samples) is too small and noisy to drive ReduceLROnPlateau reliably
+  lr_scheduler: cosineWarmRestarts
+  # First cycle length in epochs - LR decays from learning_rate to lr_min over T0 epochs, then resets
+  lr_T0: 20
+  # Cycle length multiplier - 1 keeps all cycles equal length (20 epochs each)
+  lr_T_mult: 1
+  # LR floor at the end of each cycle - never fully reaches zero
+  lr_min: 0.000001
+  # Run 3 - CosineAnnealingWarmRestarts added. Full HQ dataset.
   epochs: 20
-  # Increased from 8 (run 1) - better GPU utilisation on 16GB VRAM
   batch_size: 16
 
 data:

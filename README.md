@@ -177,8 +177,8 @@ sensor-agnosticism claim. Tier 1 (Sentinel-2) is a proof point, not the product 
 - [x] dataset.py - A.Resize(512,512) for mixed resolution HQ samples
 - [x] Full HQ data extraction verified (9,177 train / 612 val / 1,060 test)
 - [x] Run 2 - full HQ dataset, 20 epochs, batch_size 16 ✓ F1: 0.9198, IoU: 0.8515
-- [ ] Training optimisations - mixed precision, persistent workers, cudnn.benchmark
-- [ ] CosineAnnealingWarmRestarts + robustness augmentation + 100 epochs (Runs 3-5)
+- [x] Training optimisations - mixed precision, persistent workers, cudnn.benchmark
+- [ ] CosineAnnealingWarmRestarts + robustness augmentation + 100 epochs (Run 3 in progress)
 - [ ] src/export.py (ONNX export and numerical validation)
 - [ ] src/predict.py (single image inference, visualisation, CPU timing benchmark)
 - [ ] CPU cost benchmark - ResNet34 vs MobileNetV2 vs INT8 vs 256×256 on laptop CPU

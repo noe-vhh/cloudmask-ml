@@ -65,7 +65,7 @@ def train():
         # groups all runs under one project on the dashboard
         project="cloudmask-ml",
         # human-readable run name
-        name=f"unet-resnet34-e{train_cfg['epochs']}-b{train_cfg['batch_size']}",
+        name=f"unet-resnet34-e{train_cfg['epochs']}-b{train_cfg['batch_size']}-{train_cfg['lr_scheduler']}",
         # logs entire config.yaml as hyperparameters
         config=config                 
     )
@@ -118,6 +118,16 @@ def train():
     # Adam - adaptive learning rate optimiser, standard choice for segmentation
     criterion = torch.nn.BCEWithLogitsLoss()
     optimiser = torch.optim.Adam(model.parameters(), lr=train_cfg["learning_rate"])
+
+    # LR scheduler - cosine decay from learning_rate -> lr_min over T0 epochs, then resets
+    # Warm restarts allow the model to escape local minima each cycle
+    # Time-based (not val-loss-based) - val set too small to drive ReduceLROnPlateau reliably
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
+        optimiser,
+        T_0=train_cfg["lr_T0"],
+        T_mult=train_cfg["lr_T_mult"],
+        eta_min=train_cfg["lr_min"]
+    )
 
     best_val_loss = float("inf")
     best_epoch = 0
@@ -183,7 +193,8 @@ def train():
         wandb.log({
             "epoch": epoch + 1,
             "train_loss": avg_train,
-            "val_loss": avg_val
+            "val_loss": avg_val,
+            "lr": scheduler.get_last_lr()[0],
         })
 
         # Save best checkpoint
@@ -192,6 +203,8 @@ def train():
             best_epoch = epoch + 1
             torch.save(model.state_dict(), f"models/core/unet_resnet34_core_{timestamp}_best.pth")
             print(f"  Best model saved (val loss: {avg_val:.4f})")
+
+        scheduler.step()
 
     # Save best epoch and best value loss to W&B summary
     wandb.run.summary["best_val_loss"] = best_val_loss
