@@ -4,10 +4,11 @@ from datetime import datetime
 import torch
 import yaml
 import segmentation_models_pytorch as smp
-import albumentations as A
-from torch.utils.data import DataLoader
-import wandb
 from dataset import CloudSEN12Dataset
+from torch.utils.data import DataLoader
+import albumentations as A
+from torch.cuda.amp import GradScaler
+import wandb
 
 class Tee:
     def __init__(self, filepath):
@@ -57,6 +58,9 @@ def train():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
+    # Profile fastest conv kernel for fixed 512x512x13 input, reuse every batch
+    torch.backends.cudnn.benchmark = True
+
     wandb.init(
         # groups all runs under one project on the dashboard
         project="cloudmask-ml",
@@ -94,8 +98,8 @@ def train():
     # shuffle=True for train - prevents model learning order of samples
     # shuffle=False for val - order doesn't matter, consistency does
     # num_workers=4 - parallel workers loading data from disk while GPU trains
-    train_loader = DataLoader(train_dataset, batch_size=train_cfg["batch_size"], shuffle=True, num_workers=4, pin_memory=True)
-    val_loader = DataLoader(val_dataset, batch_size=train_cfg["batch_size"], shuffle=False, num_workers=4, pin_memory=True)
+    train_loader = DataLoader(train_dataset, batch_size=train_cfg["batch_size"], shuffle=True, num_workers=4, pin_memory=True, persistent_workers=True, prefetch_factor=2)
+    val_loader = DataLoader(val_dataset, batch_size=train_cfg["batch_size"], shuffle=False, num_workers=4, pin_memory=True, persistent_workers=True, prefetch_factor=2)
 
     # Model
     # encoder_weights="imagenet" - start from pretrained weights, not random
@@ -118,6 +122,8 @@ def train():
     best_val_loss = float("inf")
     best_epoch = 0
 
+    scaler = GradScaler()
+
     # Training Loop
     for epoch in range(train_cfg["epochs"]):
 
@@ -132,16 +138,22 @@ def train():
             # The shapes must match for the loss function. unsqueeze(1) inserts the missing channel dimension.
             masks = masks.unsqueeze(1).float().to(device)
 
-            # clear gradients from last step
+            # Clear gradients from last step
             optimiser.zero_grad()
-            # forward pass
-            outputs = model(images)
-            # compare predictions to ground truth
-            loss = criterion(outputs, masks)
-            # backpropagation - compute gradients
-            loss.backward()
-            # update weights
-            optimiser.step()
+
+            # Forward pass
+            with torch.cuda.amp.autocast():
+                outputs = model(images)
+                # Compare predictions to ground truth
+                loss = criterion(outputs, masks)
+
+            # Backpropagation - compute gradients
+            # Scales loss up before backward pass to prevent float16 underflow
+            scaler.scale(loss).backward()
+            # Unscales gradients, then updates weights
+            scaler.step(optimiser)
+            # Adjusts the scale factor for next iteration (auto-tunes itself)
+            scaler.update()
 
             train_loss += loss.item()
 
